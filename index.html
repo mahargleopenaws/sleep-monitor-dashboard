@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta name="dashboard-version" content="2026-10-27_60-SECOND-VIDEO">
+<meta name="dashboard-version" content="2026-10-27_10-SECOND-VIDEO">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>SleepMonitor-C3 Dashboard</title>
@@ -68,7 +68,7 @@ canvas{width:100%;height:210px;display:block;background:#101820;border-radius:12
 <section class="panel">
   <h2 style="margin-top:0">Live acceleration</h2>
   <canvas id="chart" width="900" height="240" aria-label="Live X Y Z graph"></canvas>
-  <p class="small">Rolling 60-second view. Labels show local clock time at 15-second intervals. Graph refreshes once per second.</p>
+  <p class="small">Rolling 10-second view. Labels show local clock time at 2-second intervals. Graph refreshes once per second.</p>
 
   <h3 style="margin:14px 0 6px">Position timeline</h3>
   <canvas id="positionChart" class="timeline" width="900" height="125" aria-label="Timestamped position timeline showing detected sleep positions"></canvas>
@@ -112,9 +112,9 @@ let lastDraw=0;
 let drawPending=false;
 let lastLogSample=0;
 
-// VIDEO VERSION: display the most recent 60 seconds.
-// Sensor and Bluetooth speeds remain unchanged.
-const VIEW_MS=60*1000;
+// VIDEO VERSION: show only the latest 10 seconds.
+// Sensor sampling and Bluetooth speeds remain unchanged.
+const VIEW_MS=10*1000;
 const MAX_VIEW_SAMPLES=6000;
 const REDRAW_MS=1000;
 
@@ -190,6 +190,7 @@ function parsePacket(text){
 
   text.split(';').forEach(p=>{
     const i=p.indexOf('=');
+
     if(i>0){
       f[p.slice(0,i).trim()]=p.slice(i+1).trim();
     }
@@ -357,8 +358,8 @@ function drawTimeAxis(ctx,w,h,now,left,right,baseY){
   ctx.font='12px system-ui';
   ctx.textAlign='center';
 
-  // Four intervals across the rolling 60-second window.
-  // Labels appear every 15 seconds.
+  // Five labels across the rolling 10-second window.
+  // Each interval represents 2 seconds.
   for(let i=0;i<5;i++){
     const frac=i/4;
     const px=left+frac*(right-left);
@@ -544,6 +545,7 @@ function drawPositionTimeline(
 
       if(x2-x1>=58){
         const label=a.pos;
+
         const maxChars=Math.max(
           5,
           Math.floor((x2-x1)/7)
