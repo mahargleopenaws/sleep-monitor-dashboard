@@ -1,109 +1,648 @@
-
 <!doctype html>
 <html lang="en">
 <head>
-<meta name="dashboard-version" content="2026-10-27_01-00-44_SAST">
-<!-- Fixed dashboard build timestamp: 2026-10-27_01-00-44_SAST -->
+<meta name="dashboard-version" content="2026-10-27_60-SECOND-VIDEO">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>SleepMonitor-C3 Dashboard</title>
 <style>
 :root{color-scheme:dark;--bg:#101820;--panel:#1c2935;--text:#f3f6f8;--muted:#a9bac8;--accent:#64d8cb;--border:#344653}
-*{box-sizing:border-box}body{margin:0;font:16px/1.45 system-ui,sans-serif;background:var(--bg);color:var(--text)}
-main{max-width:900px;margin:auto;padding:18px}h1{font-size:1.55rem;margin:0 0 4px}.sub{color:var(--muted);margin:0 0 18px}
+*{box-sizing:border-box}
+body{margin:0;font:16px/1.45 system-ui,sans-serif;background:var(--bg);color:var(--text)}
+main{max-width:900px;margin:auto;padding:18px}
+h1{font-size:1.55rem;margin:0 0 4px}
+.sub{color:var(--muted);margin:0 0 18px}
 .panel{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:16px;margin:12px 0}
-.actions{display:flex;gap:10px;flex-wrap:wrap}button{border:0;border-radius:10px;padding:12px 16px;font:inherit;font-weight:700;background:var(--accent);color:#09201e;cursor:pointer}
-button.secondary{background:#344653;color:var(--text)}button:disabled{opacity:.45;cursor:not-allowed}.status{color:var(--muted);margin-top:12px;overflow-wrap:anywhere}
-.pill{display:inline-block;padding:4px 10px;border-radius:99px;background:#344653;color:var(--muted);font-size:.85rem}.pill.ok{background:#174d46;color:#aaf4e8}
+.actions{display:flex;gap:10px;flex-wrap:wrap}
+button{border:0;border-radius:10px;padding:12px 16px;font:inherit;font-weight:700;background:var(--accent);color:#09201e;cursor:pointer}
+button.secondary{background:#344653;color:var(--text)}
+button:disabled{opacity:.45;cursor:not-allowed}
+.status{color:var(--muted);margin-top:12px;overflow-wrap:anywhere}
+.pill{display:inline-block;padding:4px 10px;border-radius:99px;background:#344653;color:var(--muted);font-size:.85rem}
+.pill.ok{background:#174d46;color:#aaf4e8}
 .position{font-size:clamp(1.7rem,6vw,3rem);font-weight:800;color:var(--accent);margin:6px 0 0;overflow-wrap:anywhere}
-.readings{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.reading{background:#101820;border-radius:12px;padding:12px}
-.reading .axis{color:var(--muted);font-size:.9rem}.reading .num{font-size:clamp(1.2rem,4vw,2rem);font-weight:750}
-canvas{width:100%;height:210px;display:block;background:#101820;border-radius:12px}.timeline{height:125px;margin-top:10px}.small{color:var(--muted);font-size:.9rem}
+.readings{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.reading{background:#101820;border-radius:12px;padding:12px}
+.reading .axis{color:var(--muted);font-size:.9rem}
+.reading .num{font-size:clamp(1.2rem,4vw,2rem);font-weight:750}
+canvas{width:100%;height:210px;display:block;background:#101820;border-radius:12px}
+.timeline{height:125px;margin-top:10px}
+.small{color:var(--muted);font-size:.9rem}
 #log{max-height:180px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;font:.82rem/1.4 ui-monospace,monospace;color:var(--muted)}
 </style>
 </head>
-<body><main>
-<h1>SleepMonitor-C3</h1><p class="sub">Live sleep-position and ADXL345 dashboard</p>
-<section class="panel"><div class="actions"><button id="connect">Connect to ESP32</button><button id="disconnect" class="secondary" disabled>Disconnect</button></div>
-<p><span id="badge" class="pill">Not connected</span></p><div id="status" class="status">Ready. This page needs a secure website and a browser that supports Web Bluetooth.</div></section>
-<section class="panel"><div class="small">Detected position</div><div id="position" class="position">—</div>
-<div class="readings" style="margin-top:14px"><div class="reading"><div class="axis">X (m/s²)</div><div id="x" class="num">—</div></div><div class="reading"><div class="axis">Y (m/s²)</div><div id="y" class="num">—</div></div><div class="reading"><div class="axis">Z (m/s²)</div><div id="z" class="num">—</div></div></div></section>
-<section class="panel"><h2 style="margin-top:0">Live acceleration</h2><canvas id="chart" width="900" height="240" aria-label="Live X Y Z graph"></canvas><p class="small">Rolling 10-minute view. Labels show local clock time at 2½-minute intervals; acceleration graph updates with each received reading.</p><h3 style="margin:14px 0 6px">Position timeline</h3><canvas id="positionChart" class="timeline" width="900" height="125" aria-label="Timestamped position timeline showing detected sleep positions"></canvas><p class="small">Position changes are aligned with the acceleration graph. The graph is simplified for smoother display; CSV recording retains every received reading with local and UTC timestamps, elapsed seconds, position, and X/Y/Z readings for CPAP comparison.</p><p id="sessionClock" class="small">Session time: not started.</p></section>
-<section class="panel"><div class="actions"><button id="record" class="secondary" disabled>Start recording</button><button id="export" class="secondary" disabled>Export CSV</button><button id="clear" class="secondary">Clear log</button></div>
-<p id="recordStatus" class="status">Recording is off.</p><p class="small">Recording stays in memory while this page is open. Export before closing or refreshing.</p></section>
-<section class="panel"><h2 style="margin-top:0">Recent messages</h2><div id="log">Waiting for Bluetooth data…</div></section>
+<body>
+<main>
+
+<h1>SleepMonitor-C3</h1>
+<p class="sub">Live sleep-position and ADXL345 dashboard</p>
+
+<section class="panel">
+  <div class="actions">
+    <button id="connect">Connect to ESP32</button>
+    <button id="disconnect" class="secondary" disabled>Disconnect</button>
+  </div>
+  <p><span id="badge" class="pill">Not connected</span></p>
+  <div id="status" class="status">Ready. This page needs a secure website and a browser that supports Web Bluetooth.</div>
+</section>
+
+<section class="panel">
+  <div class="small">Detected position</div>
+  <div id="position" class="position">—</div>
+  <div class="readings" style="margin-top:14px">
+    <div class="reading">
+      <div class="axis">X (m/s²)</div>
+      <div id="x" class="num">—</div>
+    </div>
+    <div class="reading">
+      <div class="axis">Y (m/s²)</div>
+      <div id="y" class="num">—</div>
+    </div>
+    <div class="reading">
+      <div class="axis">Z (m/s²)</div>
+      <div id="z" class="num">—</div>
+    </div>
+  </div>
+</section>
+
+<section class="panel">
+  <h2 style="margin-top:0">Live acceleration</h2>
+  <canvas id="chart" width="900" height="240" aria-label="Live X Y Z graph"></canvas>
+  <p class="small">Rolling 60-second view. Labels show local clock time at 15-second intervals. Graph refreshes once per second.</p>
+
+  <h3 style="margin:14px 0 6px">Position timeline</h3>
+  <canvas id="positionChart" class="timeline" width="900" height="125" aria-label="Timestamped position timeline showing detected sleep positions"></canvas>
+
+  <p class="small">Position changes are aligned with the acceleration graph. The graph is simplified for smoother display; CSV recording retains every received reading with local and UTC timestamps, elapsed seconds, position, and X/Y/Z readings for CPAP comparison.</p>
+  <p id="sessionClock" class="small">Session time: not started.</p>
+</section>
+
+<section class="panel">
+  <div class="actions">
+    <button id="record" class="secondary" disabled>Start recording</button>
+    <button id="export" class="secondary" disabled>Export CSV</button>
+    <button id="clear" class="secondary">Clear log</button>
+  </div>
+  <p id="recordStatus" class="status">Recording is off.</p>
+  <p class="small">Recording stays in memory while this page is open. Export before closing or refreshing.</p>
+</section>
+
+<section class="panel">
+  <h2 style="margin-top:0">Recent messages</h2>
+  <div id="log">Waiting for Bluetooth data…</div>
+</section>
+
 </main>
+
 <script>
 (() => {
-const SERVICE_UUID='7a1e0001-5b4c-4d3e-9f10-1234567890ab', CHARACTERISTIC_UUID='7a1e0002-5b4c-4d3e-9f10-1234567890ab';
-const $=id=>document.getElementById(id);let device=null,characteristic=null,recording=false,samples=[],csvRows=[],sessionStart=null,timelinePending=false,lastLogSample=0;
-const VIEW_MS=10*60*1000,MAX_VIEW_SAMPLES=6000,REDRAW_MS=1000; // Keep the full 10-minute window at 10 Hz; graph is downsampled for smooth drawing
-function localTimestamp(ms){const d=new Date(ms),pad=n=>String(n).padStart(2,'0');const offset=-d.getTimezoneOffset(),sign=offset>=0?'+':'-',oh=pad(Math.floor(Math.abs(offset)/60)),om=pad(Math.abs(offset)%60);return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}.${String(d.getMilliseconds()).padStart(3,'0')}${sign}${oh}:${om}`}
-function clockTime(ms){return new Date(ms).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false})}
-function status(t){$('status').textContent=t}
-function connected(on){$('badge').textContent=on?'Connected':'Not connected';$('badge').className=on?'pill ok':'pill';$('connect').disabled=on;$('disconnect').disabled=!on;$('record').disabled=!on}
-function addLog(t){const stamp=new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}),old=$('log').textContent==='Waiting for Bluetooth data…'?'':$('log').textContent;$('log').textContent=(stamp+'  '+t+'\n'+old).split('\n').slice(0,14).join('\n')}
-function scheduleDraw(){drawChart();if(!timelinePending){timelinePending=true;setTimeout(()=>{timelinePending=false;drawPositionTimeline()},1000)}}
-function parsePacket(text){const f={};text.split(';').forEach(p=>{const i=p.indexOf('=');if(i>0)f[p.slice(0,i).trim()]=p.slice(i+1).trim()});const pos=f.POSITION,x=Number(f.X),y=Number(f.Y),z=Number(f.Z);if(pos===undefined||![x,y,z].every(Number.isFinite)){addLog('Unrecognised packet: '+text);return}
-$('position').textContent=pos;$('x').textContent=x.toFixed(2);$('y').textContent=y.toFixed(2);$('z').textContent=z.toFixed(2);const point={t:Date.now(),pos,x,y,z};samples.push(point);if(samples.length>MAX_VIEW_SAMPLES)samples.shift();if(recording){if(sessionStart===null)sessionStart=point.t;csvRows.push([localTimestamp(point.t),new Date(point.t).toISOString(),((point.t-sessionStart)/1000).toFixed(3),pos,x.toFixed(2),y.toFixed(2),z.toFixed(2)]);$('recordStatus').textContent='Recording… '+csvRows.length+' rows captured.';$('export').disabled=false;$('sessionClock').textContent='Recording started: '+localTimestamp(sessionStart)+' | Current time: '+localTimestamp(point.t)+' | Elapsed: '+((point.t-sessionStart)/1000/60).toFixed(1)+' min'}scheduleDraw();if(point.t-lastLogSample>=1000){addLog(text);lastLogSample=point.t}}
-function onNotification(e){parsePacket(new TextDecoder().decode(e.target.value))}
-function onDisconnected(){connected(false);characteristic=null;status('Bluetooth disconnected. Tap Connect to reconnect.');addLog('Bluetooth disconnected.')}
-async function connect(){if(!('bluetooth'in navigator)){status('This browser does not expose Web Bluetooth. Try a compatible browser and a secure website.');return}try{status('Choose SLEEPMONITOR-C3 in the Bluetooth chooser…');device=await navigator.bluetooth.requestDevice({filters:[{name:'SleepMonitor-C3'}],optionalServices:[SERVICE_UUID]});device.addEventListener('gattserverdisconnected',onDisconnected);status('Connecting…');const server=await device.gatt.connect();const service=await server.getPrimaryService(SERVICE_UUID);characteristic=await service.getCharacteristic(CHARACTERISTIC_UUID);characteristic.addEventListener('characteristicvaluechanged',onNotification);await characteristic.startNotifications();connected(true);status('Connected. Waiting for live readings…');addLog('Connected; notifications enabled.');lastLogSample=0}catch(e){status('Connection did not complete: '+(e.message||String(e)));addLog('Bluetooth error: '+(e.message||String(e)))}}
-async function disconnect(){try{if(characteristic){try{await characteristic.stopNotifications()}catch(_){}characteristic.removeEventListener('characteristicvaluechanged',onNotification)}if(device?.gatt?.connected)device.gatt.disconnect()}catch(e){status('Disconnect issue: '+e.message)}finally{connected(false);characteristic=null;status('Disconnected.')}}
+
+const SERVICE_UUID='7a1e0001-5b4c-4d3e-9f10-1234567890ab';
+const CHARACTERISTIC_UUID='7a1e0002-5b4c-4d3e-9f10-1234567890ab';
+
+const $=id=>document.getElementById(id);
+
+let device=null;
+let characteristic=null;
+let recording=false;
+let samples=[];
+let csvRows=[];
+let sessionStart=null;
+let lastDraw=0;
+let drawPending=false;
+let lastLogSample=0;
+
+// VIDEO VERSION: display the most recent 60 seconds.
+// Sensor and Bluetooth speeds remain unchanged.
+const VIEW_MS=60*1000;
+const MAX_VIEW_SAMPLES=6000;
+const REDRAW_MS=1000;
+
+function localTimestamp(ms){
+  const d=new Date(ms);
+  const pad=n=>String(n).padStart(2,'0');
+  const offset=-d.getTimezoneOffset();
+  const sign=offset>=0?'+':'-';
+  const oh=pad(Math.floor(Math.abs(offset)/60));
+  const om=pad(Math.abs(offset)%60);
+
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}.${String(d.getMilliseconds()).padStart(3,'0')}${sign}${oh}:${om}`;
+}
+
+function clockTime(ms){
+  return new Date(ms).toLocaleTimeString([],{
+    hour:'2-digit',
+    minute:'2-digit',
+    second:'2-digit',
+    hour12:false
+  });
+}
+
+function status(t){
+  $('status').textContent=t;
+}
+
+function connected(on){
+  $('badge').textContent=on?'Connected':'Not connected';
+  $('badge').className=on?'pill ok':'pill';
+  $('connect').disabled=on;
+  $('disconnect').disabled=!on;
+  $('record').disabled=!on;
+}
+
+function addLog(t){
+  const stamp=new Date().toLocaleTimeString([],{
+    hour:'2-digit',
+    minute:'2-digit',
+    second:'2-digit',
+    hour12:false
+  });
+
+  const old=$('log').textContent==='Waiting for Bluetooth data…'
+    ?''
+    :$('log').textContent;
+
+  $('log').textContent=(stamp+'  '+t+'\n'+old)
+    .split('\n')
+    .slice(0,14)
+    .join('\n');
+}
+
+function scheduleDraw(){
+  if(drawPending)return;
+
+  drawPending=true;
+
+  const wait=Math.max(
+    0,
+    REDRAW_MS-(performance.now()-lastDraw)
+  );
+
+  setTimeout(()=>{
+    drawPending=false;
+    lastDraw=performance.now();
+    drawChart();
+  },wait);
+}
+
+function parsePacket(text){
+  const f={};
+
+  text.split(';').forEach(p=>{
+    const i=p.indexOf('=');
+    if(i>0){
+      f[p.slice(0,i).trim()]=p.slice(i+1).trim();
+    }
+  });
+
+  const pos=f.POSITION;
+  const x=Number(f.X);
+  const y=Number(f.Y);
+  const z=Number(f.Z);
+
+  if(pos===undefined||![x,y,z].every(Number.isFinite)){
+    addLog('Unrecognised packet: '+text);
+    return;
+  }
+
+  $('position').textContent=pos;
+  $('x').textContent=x.toFixed(2);
+  $('y').textContent=y.toFixed(2);
+  $('z').textContent=z.toFixed(2);
+
+  const point={t:Date.now(),pos,x,y,z};
+
+  samples.push(point);
+
+  if(samples.length>MAX_VIEW_SAMPLES){
+    samples.shift();
+  }
+
+  if(recording){
+    if(sessionStart===null){
+      sessionStart=point.t;
+    }
+
+    csvRows.push([
+      localTimestamp(point.t),
+      new Date(point.t).toISOString(),
+      ((point.t-sessionStart)/1000).toFixed(3),
+      pos,
+      x.toFixed(2),
+      y.toFixed(2),
+      z.toFixed(2)
+    ]);
+
+    $('recordStatus').textContent=
+      'Recording… '+csvRows.length+' rows captured.';
+
+    $('export').disabled=false;
+
+    $('sessionClock').textContent=
+      'Recording started: '+localTimestamp(sessionStart)+
+      ' | Current time: '+localTimestamp(point.t)+
+      ' | Elapsed: '+((point.t-sessionStart)/1000/60).toFixed(1)+' min';
+  }
+
+  scheduleDraw();
+
+  if(point.t-lastLogSample>=1000){
+    addLog(text);
+    lastLogSample=point.t;
+  }
+}
+
+function onNotification(e){
+  parsePacket(new TextDecoder().decode(e.target.value));
+}
+
+function onDisconnected(){
+  connected(false);
+  characteristic=null;
+  status('Bluetooth disconnected. Tap Connect to reconnect.');
+  addLog('Bluetooth disconnected.');
+}
+
+async function connect(){
+  if(!('bluetooth'in navigator)){
+    status('This browser does not expose Web Bluetooth. Try a compatible browser and a secure website.');
+    return;
+  }
+
+  try{
+    status('Choose SLEEPMONITOR-C3 in the Bluetooth chooser…');
+
+    device=await navigator.bluetooth.requestDevice({
+      filters:[{name:'SleepMonitor-C3'}],
+      optionalServices:[SERVICE_UUID]
+    });
+
+    device.addEventListener(
+      'gattserverdisconnected',
+      onDisconnected
+    );
+
+    status('Connecting…');
+
+    const server=await device.gatt.connect();
+    const service=await server.getPrimaryService(SERVICE_UUID);
+
+    characteristic=await service.getCharacteristic(
+      CHARACTERISTIC_UUID
+    );
+
+    characteristic.addEventListener(
+      'characteristicvaluechanged',
+      onNotification
+    );
+
+    await characteristic.startNotifications();
+
+    connected(true);
+    status('Connected. Waiting for live readings…');
+    addLog('Connected; notifications enabled.');
+    lastLogSample=0;
+
+  }catch(e){
+    status('Connection did not complete: '+(e.message||String(e)));
+    addLog('Bluetooth error: '+(e.message||String(e)));
+  }
+}
+
+async function disconnect(){
+  try{
+    if(characteristic){
+      try{
+        await characteristic.stopNotifications();
+      }catch(_){}
+
+      characteristic.removeEventListener(
+        'characteristicvaluechanged',
+        onNotification
+      );
+    }
+
+    if(device?.gatt?.connected){
+      device.gatt.disconnect();
+    }
+
+  }catch(e){
+    status('Disconnect issue: '+e.message);
+
+  }finally{
+    connected(false);
+    characteristic=null;
+    status('Disconnected.');
+  }
+}
+
 const positionColors={
-'ON BACK':'#64d8cb','BACK RECLINED':'#4fa3ff','LEFT ELBOW':'#f7c76a','RIGHT ELBOW':'#ff9f68','LEFT SIDE':'#a9a4ff','RIGHT SIDE':'#e58adf','ON STOMACH':'#f06b78','STOMACH - LEFT ANGLE':'#d7a5ff','STOMACH - RIGHT ANGLE':'#ffb0a8','UPRIGHT':'#8ed081','BETWEEN POSITIONS':'#718096','UNKNOWN':'#718096'
+  'ON BACK':'#64d8cb',
+  'BACK RECLINED':'#4fa3ff',
+  'LEFT ELBOW':'#f7c76a',
+  'RIGHT ELBOW':'#ff9f68',
+  'LEFT SIDE':'#a9a4ff',
+  'RIGHT SIDE':'#e58adf',
+  'ON STOMACH':'#f06b78',
+  'STOMACH - LEFT ANGLE':'#d7a5ff',
+  'STOMACH - RIGHT ANGLE':'#ffb0a8',
+  'UPRIGHT':'#8ed081',
+  'BETWEEN POSITIONS':'#718096',
+  'UNKNOWN':'#718096'
 };
+
 function drawTimeAxis(ctx,w,h,now,left,right,baseY){
-  ctx.strokeStyle='#344653';ctx.fillStyle='#a9bac8';ctx.font='12px system-ui';ctx.textAlign='center';
-  // Fixed rolling window: every tick is a distinct clock time over the last 10 minutes.
+  ctx.strokeStyle='#344653';
+  ctx.fillStyle='#a9bac8';
+  ctx.font='12px system-ui';
+  ctx.textAlign='center';
+
+  // Four intervals across the rolling 60-second window.
+  // Labels appear every 15 seconds.
   for(let i=0;i<5;i++){
-    const frac=i/4,px=left+frac*(right-left),t=now-VIEW_MS+frac*VIEW_MS;
-    ctx.beginPath();ctx.moveTo(px,baseY-3);ctx.lineTo(px,baseY+2);ctx.stroke();
+    const frac=i/4;
+    const px=left+frac*(right-left);
+    const t=now-VIEW_MS+frac*VIEW_MS;
+
+    ctx.beginPath();
+    ctx.moveTo(px,baseY-3);
+    ctx.lineTo(px,baseY+2);
+    ctx.stroke();
+
     ctx.fillText(clockTime(t),px,baseY+16);
   }
+
   ctx.textAlign='left';
 }
+
 function drawChart(){
- const c=$('chart'),ctx=c.getContext('2d'),w=c.width,h=c.height;ctx.clearRect(0,0,w,h);
- const left=38,right=w-10,top=18,bottom=h-34,plotH=bottom-top,now=Date.now(),start=now-VIEW_MS;
- ctx.strokeStyle='#344653';for(let i=0;i<5;i++){const yy=top+i*plotH/4;ctx.beginPath();ctx.moveTo(left,yy);ctx.lineTo(right,yy);ctx.stroke()}
- ctx.fillStyle='#a9bac8';ctx.font='13px system-ui';ctx.textAlign='left';ctx.fillText('+12',4,top+4);ctx.fillText('+6',9,top+plotH/2+4);ctx.fillText('0',18,bottom+4);ctx.fillText('X',45,12);ctx.fillStyle='#f7c76a';ctx.fillText('Y',66,12);ctx.fillStyle='#a9a4ff';ctx.fillText('Z',87,12);
- if(samples.length>=2){
-   // Draw at most about 600 points per line, even if incoming BLE data is faster.
-   const visible=samples.filter(p=>p.t>=start&&p.t<=now);
-   const stride=Math.max(1,Math.ceil(visible.length/600));
-   for(const series of [{key:'x',color:'#64d8cb'},{key:'y',color:'#f7c76a'},{key:'z',color:'#a9a4ff'}]){
-     ctx.strokeStyle=series.color;ctx.lineWidth=2;ctx.beginPath();let begun=false;
-     for(let i=0;i<visible.length;i+=stride){
-       const p=visible[i],px=left+(p.t-start)/VIEW_MS*(right-left),py=bottom-(p[series.key]+12)/24*plotH;
-       if(!begun){ctx.moveTo(px,py);begun=true}else ctx.lineTo(px,py)
-     }
-     if(visible.length){const p=visible[visible.length-1],px=left+(p.t-start)/VIEW_MS*(right-left),py=bottom-(p[series.key]+12)/24*plotH;ctx.lineTo(px,py)}
-     ctx.stroke()
-   }
- }
- drawTimeAxis(ctx,w,h,now,left,right,h-21);
+  const c=$('chart');
+  const ctx=c.getContext('2d');
+  const w=c.width;
+  const h=c.height;
+
+  ctx.clearRect(0,0,w,h);
+
+  const left=38;
+  const right=w-10;
+  const top=18;
+  const bottom=h-34;
+  const plotH=bottom-top;
+  const now=Date.now();
+  const start=now-VIEW_MS;
+
+  ctx.strokeStyle='#344653';
+
+  for(let i=0;i<5;i++){
+    const yy=top+i*plotH/4;
+
+    ctx.beginPath();
+    ctx.moveTo(left,yy);
+    ctx.lineTo(right,yy);
+    ctx.stroke();
+  }
+
+  ctx.fillStyle='#a9bac8';
+  ctx.font='13px system-ui';
+  ctx.textAlign='left';
+
+  ctx.fillText('+12',4,top+4);
+  ctx.fillText('+6',9,top+plotH/2+4);
+  ctx.fillText('0',18,bottom+4);
+
+  ctx.fillText('X',45,12);
+  ctx.fillStyle='#f7c76a';
+  ctx.fillText('Y',66,12);
+  ctx.fillStyle='#a9a4ff';
+  ctx.fillText('Z',87,12);
+
+  if(samples.length>=2){
+
+    const visible=samples.filter(
+      p=>p.t>=start&&p.t<=now
+    );
+
+    // Limit drawn points for smooth graph rendering.
+    const stride=Math.max(
+      1,
+      Math.ceil(visible.length/600)
+    );
+
+    for(const series of [
+      {key:'x',color:'#64d8cb'},
+      {key:'y',color:'#f7c76a'},
+      {key:'z',color:'#a9a4ff'}
+    ]){
+      ctx.strokeStyle=series.color;
+      ctx.lineWidth=2;
+      ctx.beginPath();
+
+      let begun=false;
+
+      for(let i=0;i<visible.length;i+=stride){
+        const p=visible[i];
+        const px=left+(p.t-start)/VIEW_MS*(right-left);
+        const py=bottom-(p[series.key]+12)/24*plotH;
+
+        if(!begun){
+          ctx.moveTo(px,py);
+          begun=true;
+        }else{
+          ctx.lineTo(px,py);
+        }
+      }
+
+      if(visible.length){
+        const p=visible[visible.length-1];
+        const px=left+(p.t-start)/VIEW_MS*(right-left);
+        const py=bottom-(p[series.key]+12)/24*plotH;
+
+        ctx.lineTo(px,py);
+      }
+
+      ctx.stroke();
+    }
+  }
+
+  drawTimeAxis(ctx,w,h,now,left,right,h-21);
+  drawPositionTimeline(now,start);
 }
-function drawPositionTimeline(now=Date.now(),start=now-VIEW_MS){
- const c=$('positionChart'),ctx=c.getContext('2d'),w=c.width,h=c.height;ctx.clearRect(0,0,w,h);const left=38,right=w-10,plotW=right-left,barY=10,barH=32;
- ctx.fillStyle='#a9bac8';ctx.font='13px system-ui';ctx.textAlign='left';
- if(!samples.length){ctx.fillText('Position history will appear when data arrives.',12,28);drawTimeAxis(ctx,w,h,now,left,right,h-23);return}
- ctx.fillStyle='#344653';ctx.fillRect(left,barY,plotW,barH);
- // Render position spans against actual timestamps, aligned to the acceleration chart.
- let runStart=0;
- while(runStart<samples.length){
-   let runEnd=runStart+1;while(runEnd<samples.length&&samples[runEnd].pos===samples[runStart].pos)runEnd++;
-   const a=samples[runStart],b=samples[Math.min(runEnd,samples.length-1)];
-   const t1=Math.max(start,a.t),t2=Math.min(now,runEnd<samples.length?b.t:now);
-   if(t2>=t1){const x1=left+(t1-start)/VIEW_MS*plotW,x2=left+(t2-start)/VIEW_MS*plotW;ctx.fillStyle=positionColors[a.pos]||'#718096';ctx.fillRect(x1,barY,Math.max(1,x2-x1),barH);
-     if(x2-x1>=58){const label=a.pos,maxChars=Math.max(5,Math.floor((x2-x1)/7)),shown=label.length>maxChars?label.slice(0,maxChars-1)+'…':label;ctx.save();ctx.beginPath();ctx.rect(x1,barY,x2-x1,barH);ctx.clip();ctx.fillStyle='#101820';ctx.fillText(shown,x1+4,barY+20);ctx.restore()}}
-   runStart=runEnd;
- }
- drawTimeAxis(ctx,w,h,now,left,right,h-23);
+
+function drawPositionTimeline(
+  now=Date.now(),
+  start=now-VIEW_MS
+){
+  const c=$('positionChart');
+  const ctx=c.getContext('2d');
+  const w=c.width;
+  const h=c.height;
+
+  ctx.clearRect(0,0,w,h);
+
+  const left=38;
+  const right=w-10;
+  const plotW=right-left;
+  const barY=10;
+  const barH=32;
+
+  ctx.fillStyle='#a9bac8';
+  ctx.font='13px system-ui';
+  ctx.textAlign='left';
+
+  if(!samples.length){
+    ctx.fillText(
+      'Position history will appear when data arrives.',
+      12,
+      28
+    );
+
+    drawTimeAxis(
+      ctx,w,h,now,left,right,h-23
+    );
+
+    return;
+  }
+
+  ctx.fillStyle='#344653';
+  ctx.fillRect(left,barY,plotW,barH);
+
+  // Position spans use timestamps aligned to the acceleration graph.
+  let runStart=0;
+
+  while(runStart<samples.length){
+    let runEnd=runStart+1;
+
+    while(
+      runEnd<samples.length&&
+      samples[runEnd].pos===samples[runStart].pos
+    ){
+      runEnd++;
+    }
+
+    const a=samples[runStart];
+    const b=samples[Math.min(runEnd,samples.length-1)];
+
+    const t1=Math.max(start,a.t);
+
+    const t2=Math.min(
+      now,
+      runEnd<samples.length?b.t:now
+    );
+
+    if(t2>=t1){
+      const x1=left+(t1-start)/VIEW_MS*plotW;
+      const x2=left+(t2-start)/VIEW_MS*plotW;
+
+      ctx.fillStyle=positionColors[a.pos]||'#718096';
+
+      ctx.fillRect(
+        x1,
+        barY,
+        Math.max(1,x2-x1),
+        barH
+      );
+
+      if(x2-x1>=58){
+        const label=a.pos;
+        const maxChars=Math.max(
+          5,
+          Math.floor((x2-x1)/7)
+        );
+
+        const shown=label.length>maxChars
+          ?label.slice(0,maxChars-1)+'…'
+          :label;
+
+        ctx.save();
+
+        ctx.beginPath();
+        ctx.rect(x1,barY,x2-x1,barH);
+        ctx.clip();
+
+        ctx.fillStyle='#101820';
+        ctx.fillText(shown,x1+4,barY+20);
+
+        ctx.restore();
+      }
+    }
+
+    runStart=runEnd;
+  }
+
+  drawTimeAxis(ctx,w,h,now,left,right,h-23);
 }
-$('connect').addEventListener('click',connect);$('disconnect').addEventListener('click',disconnect);
-$('record').addEventListener('click',()=>{recording=!recording;$('record').textContent=recording?'Stop recording':'Start recording';if(recording){sessionStart=Date.now();csvRows=[];$('recordStatus').textContent='Recording started at '+localTimestamp(sessionStart)+'.';$('export').disabled=true;$('sessionClock').textContent='Recording started: '+localTimestamp(sessionStart)+' | Elapsed: 0.0 min'}else{$('recordStatus').textContent='Recording stopped. '+csvRows.length+' rows captured.';$('export').disabled=!csvRows.length}});
-$('export').addEventListener('click',()=>{if(!csvRows.length)return;const rows=[['timestamp_local_with_timezone','timestamp_utc_iso','elapsed_seconds','position','x_m_s2','y_m_s2','z_m_s2'],...csvRows],csv=rows.map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\r\n'),url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'})),a=document.createElement('a');a.href=url;a.download='sleep-monitor-readings.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1500)});
-$('clear').addEventListener('click',()=>$('log').textContent='Log cleared.');connected(false);drawChart();drawPositionTimeline();
+
+$('connect').addEventListener('click',connect);
+$('disconnect').addEventListener('click',disconnect);
+
+$('record').addEventListener('click',()=>{
+  recording=!recording;
+
+  $('record').textContent=recording
+    ?'Stop recording'
+    :'Start recording';
+
+  if(recording){
+    sessionStart=Date.now();
+    csvRows=[];
+
+    $('recordStatus').textContent=
+      'Recording started at '+localTimestamp(sessionStart)+'.';
+
+    $('export').disabled=true;
+
+    $('sessionClock').textContent=
+      'Recording started: '+localTimestamp(sessionStart)+
+      ' | Elapsed: 0.0 min';
+
+  }else{
+    $('recordStatus').textContent=
+      'Recording stopped. '+csvRows.length+' rows captured.';
+
+    $('export').disabled=!csvRows.length;
+  }
+});
+
+$('export').addEventListener('click',()=>{
+  if(!csvRows.length)return;
+
+  const rows=[
+    [
+      'timestamp_local_with_timezone',
+      'timestamp_utc_iso',
+      'elapsed_seconds',
+      'position',
+      'x_m_s2',
+      'y_m_s2',
+      'z_m_s2'
+    ],
+    ...csvRows
+  ];
+
+  const csv=rows.map(r=>
+    r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')
+  ).join('\r\n');
+
+  const url=URL.createObjectURL(
+    new Blob([csv],{type:'text/csv;charset=utf-8;'})
+  );
+
+  const a=document.createElement('a');
+  a.href=url;
+  a.download='sleep-monitor-readings.csv';
+  a.click();
+
+  setTimeout(()=>URL.revokeObjectURL(url),1500);
+});
+
+$('clear').addEventListener('click',()=>{
+  $('log').textContent='Log cleared.';
+});
+
+connected(false);
+drawChart();
+
 })();
-</script></body></html>
+</script>
+</body>
+</html>
